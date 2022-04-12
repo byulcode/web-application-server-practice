@@ -14,6 +14,8 @@ import java.nio.file.Paths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import util.HttpRequestUtils;
+
 public class RequestHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
 
@@ -40,12 +42,10 @@ public class RequestHandler extends Thread {
 //        		line = br.readLine();
 //        	}
         	
-        	String[] splited = line.split(" ");
-        	String path = splited[1];
         	
-        	
+        	String url = HttpRequestUtils.getUrl(line);
             DataOutputStream dos = new DataOutputStream(out);
-            byte[] body = Files.readAllBytes(new File("./webapp" + path).toPath());
+            byte[] body = Files.readAllBytes(new File("./webapp" + url).toPath());
             response200Header(dos, body.length);
             responseBody(dos, body);
         } catch (IOException e) {
