@@ -15,7 +15,9 @@
 * 각 요구사항을 구현하는 것이 중요한 것이 아니라 구현 과정을 통해 학습한 내용을 인식하는 것이 배움에 중요하다. 
 
 ### 요구사항 1 - http://localhost:8080/index.html로 접속시 응답
-* 
+* InputStream(1byte읽기)을 읽기 위해선 InputStreamReader(문자로 읽기 char)로 감싸고, 그것을 다시 BufferedReader(통째로 읽기 String)로 감싸 줘야 한다. 
+
+  
 
 ### 요구사항 2 - get 방식으로 회원가입
 * 
