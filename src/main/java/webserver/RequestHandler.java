@@ -9,13 +9,16 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.file.Files;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ch.qos.logback.classic.pattern.Util;
 import model.User;
 import util.HttpRequestUtils;
+import util.IOUtils;
 
 public class RequestHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
@@ -38,16 +41,28 @@ public class RequestHandler extends Thread {
         		return;
         	}
         	String url = HttpRequestUtils.getUrl(line);
-        	//요구사항 2
+        	Map<String, String> headers = new HashMap<>();
+        	while(!"".equals(line)) {
+        		log.debug("header : {}", line);
+        		line = br.readLine();
+        		String[] headerTokens = line.split(": ");
+        		if(headerTokens.length == 2) {
+        			headers.put(headerTokens[0], headerTokens[1]);
+        		}
+        	}
+        	log.debug("Content-Length : {}", headers.get("Content-Length"));
+        	
+
         	if(url.startsWith("/user/creat")) {
-        		int index = url.indexOf("?");	// ? 가 어느 위치에 있는지 알아내기
-        		String queryString = url.substring(index+1);		// index까지 자르기
+        		String requestBody = IOUtils.readData(br, Integer.parseInt(headers.get("Content-Length")));
+        		log.debug("RequestBody : {}", requestBody);
+        		Map<String, String> params = HttpRequestUtils.parseQueryString(requestBody);
         		
-        		Map<String, String> params = HttpRequestUtils.parseQueryString(queryString);
         		User user = new User(params.get("userId"), params.get("password"), params.get("name"), params.get("email"));
         		log.debug("User : {}", user);
         		url = "/index.html";
         	}
+        	
         	
             DataOutputStream dos = new DataOutputStream(out);
             byte[] body = Files.readAllBytes(new File("./webapp" + url).toPath());
