@@ -15,7 +15,7 @@ import webserver.RequestHandler;
 public class HttpRequestUtils {
 	private static final Logger log = LoggerFactory.getLogger(HttpRequestUtils.class);
 	
-	//요구사항 1 에 필요한 단계
+	//요구사항1의 단계 2
 	public static String getUrl(String firstLine) {
 		String[] splited = firstLine.split(" ");
     	String path = splited[1];

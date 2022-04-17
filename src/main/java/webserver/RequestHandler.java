@@ -54,20 +54,31 @@ public class RequestHandler extends Thread {
         	
 
         	if(url.startsWith("/user/creat")) {
+        		//회원가입 정보를 body에서 읽어와 map으로 변환 후 user객체 생성
         		String requestBody = IOUtils.readData(br, Integer.parseInt(headers.get("Content-Length")));
-        		log.debug("RequestBody : {}", requestBody);
+        		log.debug("Request Body : {}", requestBody);
         		Map<String, String> params = HttpRequestUtils.parseQueryString(requestBody);
-        		
         		User user = new User(params.get("userId"), params.get("password"), params.get("name"), params.get("email"));
         		log.debug("User : {}", user);
-        		url = "/index.html";
+        		
+        		DataOutputStream dos = new DataOutputStream(out);
+                response302Header(dos);
+        	}else {
+        		DataOutputStream dos = new DataOutputStream(out);
+                byte[] body = Files.readAllBytes(new File("./webapp" + url).toPath());
+                response200Header(dos, body.length);
+                responseBody(dos, body);
         	}
-        	
-        	
-            DataOutputStream dos = new DataOutputStream(out);
-            byte[] body = Files.readAllBytes(new File("./webapp" + url).toPath());
-            response200Header(dos, body.length);
-            responseBody(dos, body);
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    }
+    
+    private void response302Header(DataOutputStream dos) {
+        try {//특정 url로 바로 이동하기 때문에 본문(body) 필요x. 이동할 url만 필요
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Location : /index.html\r\n"); //이동할 url 지정
+            dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.error(e.getMessage());
         }
