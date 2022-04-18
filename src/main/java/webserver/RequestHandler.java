@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.Serial;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.util.HashMap;
@@ -16,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ch.qos.logback.classic.pattern.Util;
+import db.DataBase;
 import model.User;
 import util.HttpRequestUtils;
 import util.IOUtils;
@@ -24,6 +26,7 @@ public class RequestHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
 
     private Socket connection;
+    private DataBase db;
 
     public RequestHandler(Socket connectionSocket) {
         this.connection = connectionSocket;
@@ -51,7 +54,7 @@ public class RequestHandler extends Thread {
         		}
         	}
         	log.debug("Content-Length : {}", headers.get("Content-Length"));
-        	
+
 
         	if(url.startsWith("/user/creat")) {
         		//회원가입 정보를 body에서 읽어와 map으로 변환 후 user객체 생성
@@ -61,14 +64,51 @@ public class RequestHandler extends Thread {
         		User user = new User(params.get("userId"), params.get("password"), params.get("name"), params.get("email"));
         		log.debug("User : {}", user);
         		
+        		db.addUser(user);
+        		
         		DataOutputStream dos = new DataOutputStream(out);
                 response302Header(dos);
+        	} else if(url.equals("/user/login")){
+        		String requestBody = IOUtils.readData(br, Integer.parseInt(headers.get("Content-Length")));
+        		log.debug("Request Body : {}", requestBody);
+        		Map<String, String> params = HttpRequestUtils.parseQueryString(requestBody);
+        		log.debug("UserId : {}, password : {}", params.get("userId"), params.get("password"));
+        		User user = db.findUserById(params.get("userId"));
+        		if(user == null) {
+        			log.debug("User not found");
+        			DataOutputStream dos = new DataOutputStream(out);
+            		response302Header(dos);
+        		}else if(user.getPassword().equals(params.get("password"))) {
+        			log.debug("login success");
+        			DataOutputStream dos = new DataOutputStream(out);
+            		response302Header(dos);
+        		}else {
+        			log.debug("password mismatch");
+        			DataOutputStream dos = new DataOutputStream(out);
+            		response302HeaderWithCookie(dos, "logined=false");
+        		}
+        	}else if(url.endsWith(".css")) {
+        		DataOutputStream dos = new DataOutputStream(out);
+                byte[] body = Files.readAllBytes(new File("./webapp" + url).toPath());
+                response200HeaderWithCss(dos, body.length);
+                responseBody(dos, body);
         	}else {
         		DataOutputStream dos = new DataOutputStream(out);
                 byte[] body = Files.readAllBytes(new File("./webapp" + url).toPath());
                 response200Header(dos, body.length);
                 responseBody(dos, body);
         	}
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    }
+    
+    private void response302HeaderWithCookie(DataOutputStream dos, String cookie) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Location : /index.html\r\n"); //이동할 url 지정
+            dos.writeBytes("Set-Cookie: " + cookie + "\r\n");
+            dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.error(e.getMessage());
         }
@@ -83,6 +123,18 @@ public class RequestHandler extends Thread {
             log.error(e.getMessage());
         }
     }
+    
+    private void response200HeaderWithCss(DataOutputStream dos, int lengthOfBodyContent) {
+        try {
+            dos.writeBytes("HTTP/1.1 200 OK \r\n");
+            dos.writeBytes("Content-Type: text/css;charset=utf-8\r\n");
+            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    }
+    
 
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
         try {
